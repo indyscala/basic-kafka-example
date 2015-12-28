@@ -1,4 +1,4 @@
-name := """minimal-scala"""
+name := """basic-kafka-example"""
 
 version := "1.0"
 
