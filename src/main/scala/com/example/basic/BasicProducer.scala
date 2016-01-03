@@ -21,7 +21,7 @@ case class BasicProducer(topic: String, brokerList:String, sync: Boolean) {
   kafkaProps.put("linger.ms", "5")
 
   //this is our actual connection to Kafka!
-  val producer = new KafkaProducer[String, String](kafkaProps)
+  private val producer = new KafkaProducer[String, String](kafkaProps)
 
   def send(value: String): Unit = {
     if(sync) sendSync(value) else sendAsync(value)

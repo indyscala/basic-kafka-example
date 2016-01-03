@@ -1,10 +1,10 @@
 package com.example.basic
 
-object BasicDemo {
+object DemoBasicProducer {
   def main(args: Array[String]): Unit = {
 
     if (args.length != 5) {
-      println("BasicDemo {broker-list} {topic} {type sync/async} {count} {delay}")
+      println("DemoBasicProducer {broker-list} {topic} {type sync/async} {count} {delay}")
       return;
     }
 
@@ -33,6 +33,6 @@ object BasicDemo {
     val endTime = System.currentTimeMillis()
     println(s"Done.  It took ${endTime-startTime}ms")
 
-    //myProducer.close();
+    myProducer.close();
   }
 }
