@@ -1,4 +1,4 @@
-package com.example.simple
+package com.example.basic
 
 import java.util.Properties
 import org.apache.kafka.clients.producer.{Callback, RecordMetadata, ProducerRecord, KafkaProducer}

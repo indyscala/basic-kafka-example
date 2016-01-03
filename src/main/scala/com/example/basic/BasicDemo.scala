@@ -1,4 +1,4 @@
-package com.example.simple
+package com.example.basic
 
 object BasicDemo {
   def main(args: Array[String]): Unit = {
