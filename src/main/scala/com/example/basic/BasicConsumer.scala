@@ -1,39 +1,52 @@
 package com.example.basic
 
 import java.util.Properties
-import scala.collection.JavaConverters._
-import org.apache.kafka.clients.consumer.KafkaConsumer
+import kafka.consumer.{ConsumerIterator, Consumer, ConsumerConfig, KafkaStream}
+import kafka.serializer.StringDecoder
+import kafka.utils.VerifiableProperties
+;
 
-import scala.util.Try
 
-case class BasicConsumer(bootstrapServers: String, groupId: String) {
+case class BasicConsumer(zooKeeper: String, groupId: String, waitTime: String) {
+
   val kafkaProps = new Properties()
+  var streams:Map[String, KafkaStream[String,String]] = Map.empty
 
-  kafkaProps.put("bootstrap.servers", bootstrapServers);
-  kafkaProps.put("group.id", groupId)
-  kafkaProps.put("zookeeper.session.timeout.ms", "400")
-  kafkaProps.put("zookeeper.sync.time.ms", "200")
-  kafkaProps.put("auto.commit.interval.ms", "1000")
-  // when in doubt, read everything
-  kafkaProps.put("auto.offset.reset","earliest")
-  kafkaProps.put("key.deserializer","org.apache.kafka.common.serialization.StringDeserializer")
-  kafkaProps.put("value.deserializer","org.apache.kafka.common.serialization.StringDeserializer")
-  kafkaProps.put("partition.assignment.strategy", "roundrobin")
+  kafkaProps.put("zookeeper.connect", zooKeeper)
+  kafkaProps.put("group.id",groupId)
+  kafkaProps.put("auto.commit.interval.ms","1000")
+  kafkaProps.put("auto.offset.reset","smallest");
+  kafkaProps.put("key.deserializer","org.apache.kafka.common.serialization.StringDeserializer");
+  kafkaProps.put("value.deserializer","org.apache.kafka.common.serialization.StringDeserializer");
 
-  private val consumer = new KafkaConsumer[String, String](kafkaProps)
+  // un-comment this if you want to commit offsets manually
+  //kafkaProps.put("auto.commit.enable","false");
 
-  def subscribe(topic: String): Unit = consumer.subscribe(topic)
-  def unSubscribe(topic: String): Unit = consumer.unsubscribe(topic)
-  def close(): Unit = consumer.close()
+  // comment this out if you want to wait for data indefinitely
+  //kafkaProps.put("consumer.timeout.ms",waitTime)
 
-  def poll(timeout: Int): Seq[String] = {
+  private val consumer = Consumer.create(new ConsumerConfig(kafkaProps))
 
-   val pollingResults = consumer.poll(100)
-    if(pollingResults.isEmpty) Seq.empty else {
-      val allRecords = pollingResults.values().asScala.toSeq
-      allRecords flatMap { byPartitionAndTopic => byPartitionAndTopic.records().asScala.toSeq map { byTopic => byTopic.value() } }
-    }
+  def subscribe(topic: String): Unit = {
+    /* We tell Kafka how many threads will read each topic. We have one topic and one thread */
+    val topicCountMap = Map[String, Int](topic -> 1)
+    /* We will use a decoder to get Kafka to convert messages to Strings
+        * valid property will be deserializer.encoding with the charset to use.
+        * default is UTF8 which works for us */
+    val decoder = new StringDecoder(new VerifiableProperties())
+    val stream: KafkaStream[String, String] = consumer.createMessageStreams(topicCountMap, decoder, decoder).get(topic).get(0)
+    streams += (topic -> stream)
   }
+
+  def read(topic:String): String =  {
+    val stream = streams.get(topic).get
+    val it: ConsumerIterator[String, String] = stream.iterator()
+    it.next().message()
+  }
+
+  def shutdown(): Unit = consumer.shutdown()
+
+
 
 }
 
